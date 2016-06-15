@@ -69,31 +69,32 @@
                         baseUrl: 'https://weathersync.herokuapp.com'
                     },
 
-                    // Get the URL for the initial call
+                    // Get the URL for the initial call.
                     getIpEndpoint: function () {
                         return `${this.settings.baseUrl}/ip`;
                     },
 
-                    // Get the URL for the second call
+                    // Get the URL for the second call.
                     getWeatherEndpoint: function(lat, lng) {
                         return `${this.settings.baseUrl}/weather/${lat},${lng}`;
                     },
 
-                    // Get the weather icon URL
-                    getIconUrl: function (icon) {
+                    // Get the weather icon URL.
+                    getIconUrl: function(icon) {
                         return `http://openweathermap.org/img/w/${icon}.png`;
                     },
 
-                    // Convert Kelvin to Fahrenheit
-                    getFahrenheit: function (kelvin) {
+                    // Convert Kelvin to Fahrenheit.
+                    getFahrenheit: function(kelvin) {
                         return Math.floor(1.8 * (kelvin - 273) + 32);
                     },
 
-                    // Return JSON from URL and run the defined callback
+                    // Get the JSON from the URL and pass it to the defined callback.
                     getJSON: function(url, callback) {
                         let request = new XMLHttpRequest();
                         request.open('GET', url, true);
                         request.onload = function () {
+                            // If the request is OK or cached
                             if (request.status >= 200 && request.status < 400) {
                                 callback(JSON.parse(request.responseText));
                             } else {
@@ -106,24 +107,28 @@
                         request.send();
                     },
 
-                    // The main method. Fetch the various data asynchronously and render it.
+                    // The main method. Fetch the data in two async calls and render it.
                     init: function() {
 
                         // Note: I could have used an ES6 generator / iterator here, but this works also.
-                        // Fetch the basic IP and location data
+                        // Fetch the basic IP and location data.
                         this.getJSON(this.getIpEndpoint(), (ipResponse) => {
                             this.ipData = ipResponse;
                             let location = ipResponse.location;
+                            
+                            // Determine the URL to get the more-detailed weather data.
                             let weatherEndpoint = this.getWeatherEndpoint(location.latitude, location.longitude);
 
-                            // Fetch the weather data for the user's city
+                            // Fetch the weather data for the user's city.
                             this.getJSON(
                                 weatherEndpoint,
                                 (weatherResponse) => {
                                     this.weatherData = weatherResponse;
+                                    
+                                    // Kelvin must be converted to Fahrenheit.
                                     this.weatherData.main.degrees = this.getFahrenheit(this.weatherData.main.temp);
 
-                                    // Now that we have the data and set it, render the HTML.
+                                    // Now that we have all the data we need, render the HTML.
                                     this.render();
                                 }
                             );
