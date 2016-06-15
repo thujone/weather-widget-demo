@@ -1,0 +1,159 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Synacor Challenge</title>
+        <style>
+            html {
+                font-size: 100%;
+            }
+
+            body {
+                color: #998;
+                text-align: center;
+                font: 5vh/.8 Helvetica-Neue, Helvetica, sans-serif;
+            }
+
+            #weather {
+                margin: 5vh auto;
+                height: 80vh;
+                width: 80vw;
+                border: 5vh double #A9A;
+            }
+
+            h1 {
+                font-size: 5.25vh;
+                line-height: 1;
+                text-transform: uppercase;
+                color: #667;
+                margin-top: 15vh;
+            }
+
+            .city {
+                color: #556;
+            }
+
+
+            .temp {
+                color: #445;
+                font-size: 12vh;
+                margin: 1vh auto 3vh;
+                font-weight: bold;
+            }
+
+            .temp::after {
+                content: '°F';
+            }
+
+            .icon {
+                margin: 2vh;
+            }
+
+            .icon img {
+                height: 50px;
+            }
+
+            .condition {
+                color: #A9A;
+                margin: 2vh;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="app"> </div>
+        <script>
+            (() => {
+                const WeatherWidget = {
+                    settings: {
+                        containerId: 'app',
+                        baseUrl: 'https://weathersync.herokuapp.com'
+                    },
+
+                    // Get the URL for the initial call
+                    getIpEndpoint: function () {
+                        return `${this.settings.baseUrl}/ip`;
+                    },
+
+                    // Get the URL for the second call
+                    getWeatherEndpoint: function(lat, lng) {
+                        return `${this.settings.baseUrl}/weather/${lat},${lng}`;
+                    },
+
+                    // Get the weather icon URL
+                    getIconUrl: function (icon) {
+                        return `http://openweathermap.org/img/w/${icon}.png`;
+                    },
+
+                    // Convert Kelvin to Fahrenheit
+                    getFahrenheit: function (kelvin) {
+                        return Math.floor(1.8 * (kelvin - 273) + 32);
+                    },
+
+                    // Return JSON from URL and run the defined callback
+                    getJSON: function(url, callback) {
+                        let request = new XMLHttpRequest();
+                        request.open('GET', url, true);
+                        request.onload = function () {
+                            if (request.status >= 200 && request.status < 400) {
+                                callback(JSON.parse(request.responseText));
+                            } else {
+                                console.log('Server error', error);
+                            }
+                        };
+                        request.onerror = function () {
+                            console.log('Request error', error);
+                        };
+                        request.send();
+                    },
+
+                    // The main method. Fetch the various data asynchronously and render it.
+                    init: function() {
+
+                        // Note: I could have used an ES6 generator / iterator here, but this works also.
+                        // Fetch the basic IP and location data
+                        this.getJSON(this.getIpEndpoint(), (ipResponse) => {
+                            this.ipData = ipResponse;
+                            let location = ipResponse.location;
+                            let weatherEndpoint = this.getWeatherEndpoint(location.latitude, location.longitude);
+
+                            // Fetch the weather data for the user's city
+                            this.getJSON(
+                                weatherEndpoint,
+                                (weatherResponse) => {
+                                    this.weatherData = weatherResponse;
+                                    this.weatherData.main.degrees = this.getFahrenheit(this.weatherData.main.temp);
+
+                                    // Now that we have the data and set it, render the HTML.
+                                    this.render();
+                                }
+                            );
+                        });
+                    },
+
+                    // Take a template literal and render it in the container div.
+                    render: function () {
+                        let container = document.getElementById(this.settings.containerId);
+                        let template = `
+                            <div id="weather">
+                                <h1>Current Conditions For:</h1>
+                                <p class="city">${this.ipData.city}</p>
+                                <p class="temp">${this.weatherData.main.degrees}</p>
+                                <p class="icon">
+                                    <img alt="Current Condition"
+                                         src="${this.getIconUrl(this.weatherData.weather[0].icon)}" />
+                                </p>
+                                <p class="condition">${this.weatherData.weather[0].main}</p>
+                            </div>
+                        `;
+                        container.innerHTML = template;
+                    }
+                };
+
+                // Run the widget
+                WeatherWidget.init();
+            })();
+
+        </script>
+
+    </body>
+</html>
